@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
-Unless otherwise noted, the sample code and related documentation found in this
+Unless otherwise noted, the code and documentation found in this
 repository are made available under an MIT License
 (<https://opensource.org/licenses/MIT>).
 -------------------------------------------------------------------------------
