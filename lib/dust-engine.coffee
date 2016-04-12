@@ -490,19 +490,3 @@ exports__express = exports.INSTANCE.render_for_express
 
 if require.main is module
   DustEngine.main()
-  # unless process.argv.length >= 2
-  #   console.error "Use: <TEMPLATE-FILE> [CONTEXT]"
-  #   process.exit 1
-  # else
-  #   file = process.argv[2]
-  #   context = {}
-  #   if process.argv[3]
-  #     context = JSON.parse(process.argv[3])
-  #   context = [context,{template_root:path.dirname(file),preserve_newlines:true}]
-  #   (new DustEngine()).render_for_express file, context, (err,content)=>
-  #     if err?
-  #       console.error "ERROR:",err
-  #       process.exit 1
-  #     else
-  #       console.log content
-  #       process.exit 0
