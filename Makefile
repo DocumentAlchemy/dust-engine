@@ -45,14 +45,13 @@ module: test js #coverage docs
 	cp README.md $(MODULE_DIR)
 	cp LICENSE.txt $(MODULE_DIR)
 	cp -r lib $(MODULE_DIR)
+	cp -r bin $(MODULE_DIR)
 	cp $(PACKAGE_JSON) $(MODULE_DIR)
 	mv module $(PACKAGE_DIR)
 	tar -czf $(PACKAGE_DIR).tgz $(PACKAGE_DIR)
 test-module-install: clean-test-module-install module
 	mkdir -p ${TEST_MODULE_DIR}
-	cd ${TEST_MODULE_DIR}
-	npm install "$(CURDIR)/$(PACKAGE_DIR).tgz"
-	@(ls ./bin/dust-engine && node -e "require('assert').ok(require('dust-engine').DustEngine !== null);" && echo "\n\033[1;32m It worked! \033[0m\n" && cd $(CURDIR) && rm -rf ${TEST_MODULE_DIR})
+	@(cd ${TEST_MODULE_DIR} && npm install "$(CURDIR)/$(PACKAGE_DIR).tgz" && ls node_modules/.bin/dust-engine && node -e "require('assert').ok(require('dust-engine').DustEngine !== null);" && echo "\n\033[1;32m It worked! \033[0m\n" && cd $(CURDIR) && rm -rf ${TEST_MODULE_DIR})
 publish: module test-module-install; $(NPM_EXE) publish $(PACKAGE_DIR).tgz
 clean-test-module-install:; rm -rf ${TEST_MODULE_DIR}
 clean-module:
