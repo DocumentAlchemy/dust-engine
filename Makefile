@@ -52,7 +52,7 @@ test-module-install: clean-test-module-install module
 	mkdir -p ${TEST_MODULE_DIR}
 	cd ${TEST_MODULE_DIR}
 	npm install "$(CURDIR)/$(PACKAGE_DIR).tgz"
-	@(node -e "require('assert').ok(require('dust-engine').DustEngine !== null);" &&  echo "\n\033[1;32m It worked! \033[0m\n" && cd $(CURDIR) && rm -rf ${TEST_MODULE_DIR})
+	@(ls ./bin/dust-engine && node -e "require('assert').ok(require('dust-engine').DustEngine !== null);" && echo "\n\033[1;32m It worked! \033[0m\n" && cd $(CURDIR) && rm -rf ${TEST_MODULE_DIR})
 publish: module test-module-install; $(NPM_EXE) publish $(PACKAGE_DIR).tgz
 clean-test-module-install:; rm -rf ${TEST_MODULE_DIR}
 clean-module:

@@ -1,6 +1,6 @@
 {
   "name"                   : "dust-engine",
-  "version"                : "0.9.0",
+  "version"                : "0.9.1",
   "description"            : "Command line, library, and expressjs processor of dust.js templates.",
   "keywords"               : ["html","template","dustjs","dust","expressjs","express","engine"],
   "homepage"               : "https://github.com/documentalchemy/dust-engine",
@@ -9,6 +9,8 @@
   "license"                : "MIT",
   "main"                   : "lib/dust-engine.js",
   "scripts"                : {"test": "make test" },
+  "directories"            : { "lib":"lib", "bin":"bin" },
+  "preferGlobal"           : true,
   "dependencies": {
     "dustjs-linkedin"          : "^2.7",
     "inote-util"               : "^0.9",

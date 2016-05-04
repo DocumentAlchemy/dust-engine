@@ -425,6 +425,7 @@ class DustEngine
     options.o  = { alias: "output",            describe: "Output file; defaults to stdout" }
     options.q  = { alias: "quiet",             describe: "Be less chatty.", boolean:true, default:false }
     options.n  = { alias: "preserve-newlines", describe: "When truthy, newlines in templates will be preserved.", boolean:true, default:false }
+    options.ttn = { alias: "trim-trailing-newline", describe: "When truthy, any final newline (\\n) found in a template will be stripped.", boolean:true, default:false }
     arg_parser = yargs.options(options)
     arg_parser.help().alias('h','help')
     arg_parser.count('verbose').alias('v','verbose').describe('verbose',"Be more chatty")
@@ -473,7 +474,7 @@ class DustEngine
       root = path.dirname(template)
       template = path.relative(root,template)
     vlog INFO, "Using template root '#{root}'. Resolved template to '#{template}'."
-    secondary_opts = {template_root:root,preserve_newlines:argv.n,helpers:["CommonDustjsHelpers","DustjsHelpers"]}
+    secondary_opts = {template_root:root,preserve_newlines:argv.n,trim_trailing_newline:argv.ttn,helpers:["CommonDustjsHelpers","DustjsHelpers"]}
     context = [context,secondary_opts]
     vlog DEBUG, "Full context:", context
     vlog LOG, "Rendering template at '#{template}' (relative to template root)."
@@ -502,6 +503,7 @@ class DustEngine
 exports.DustEngine = DustEngine
 exports.INSTANCE = new DustEngine()
 exports.render_for_express = exports.INSTANCE.render_for_express
+exports.main = DustEngine.main
 
 if require.main is module
   DustEngine.main()
