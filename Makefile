@@ -4,7 +4,7 @@
 .SUFFIXES:
 .PHONY: all coffee clean clean-coverage clean-docco clean-docs clean-js clean-markdown clean-module clean-node-modules coverage docco docs fully-clean-node-modules js markdown test spec
 all: full-lint test
-clean: clean-coverage clean-docco clean-docs clean-js clean-node-modules
+clean: clean-coverage clean-docco clean-docs clean-js clean-node-modules clean-module clean-test-module-install
 really-clean: clean really-clean-node-modules
 ################################################################################
 
@@ -30,6 +30,35 @@ $(COFFEE_JS_OBJ): $(NODE_MODULES) $(COFFEE_SRCS) $(COFFEE_TEST_SRCS)
 clean-js:
 	@rm -f $(COFFEE_JS) $(COFFEE_TEST_JS)
 ################################################################################
+
+
+# PACKAGING ####################################################################
+MODULE_DIR ?= module
+PACKAGE_VERSION ?= $(shell $(NODE_EXE) -e "console.log(require('./$(PACKAGE_JSON)').version)")
+PACKAGE_NAME ?= $(shell $(NODE_EXE) -e "console.log(require('./$(PACKAGE_JSON)').name)")
+TMP_PACKAGE_DIR ?= packaging-$(PACKAGE_NAME)-$(PACKAGE_VERSION)-tmp
+PACKAGE_DIR ?= $(PACKAGE_NAME)-v$(PACKAGE_VERSION)
+TEST_MODULE_DIR ?= ../testing-module-install
+#------------------------------------------------------------------------------
+module: test js #coverage docs
+	mkdir -p $(MODULE_DIR)
+	cp README.md $(MODULE_DIR)
+	cp LICENSE.txt $(MODULE_DIR)
+	cp -r lib $(MODULE_DIR)
+	cp $(PACKAGE_JSON) $(MODULE_DIR)
+	mv module $(PACKAGE_DIR)
+	tar -czf $(PACKAGE_DIR).tgz $(PACKAGE_DIR)
+test-module-install: clean-test-module-install module
+	mkdir -p ${TEST_MODULE_DIR}
+	cd ${TEST_MODULE_DIR}
+	npm install "$(CURDIR)/$(PACKAGE_DIR).tgz"
+	@(node -e "require('assert').ok(require('dust-engine').DustEngine !== null);" &&  echo "\n\033[1;32m It worked! \033[0m\n" && cd $(CURDIR) && rm -rf ${TEST_MODULE_DIR})
+clean-test-module-install:; rm -rf ${TEST_MODULE_DIR}
+clean-module:
+	rm -rf ${MODULE_DIR}
+	rm -rf $(PACKAGE_DIR)
+	rm -rf $(PACKAGE_DIR).tgz
+
 
 ################################################################################
 # NPM ##########################################################################
@@ -132,7 +161,7 @@ MARKDOWN_PREFIX ?= "<html><head><style>`cat docs/styles/markdown.css`</style><bo
 MARKDOWN_SUFFIX ?= "</body></html>"
 DOCCO_EXE ?= ./node_modules/.bin/docco
 #------------------------------------------------------------------------------
-docs: markdown docco api
+docs: markdown docco
 .SUFFIXES: .md-toc .md
 .md.md-toc:
 	cp "$<" "$@"
