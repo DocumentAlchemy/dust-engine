@@ -65,6 +65,12 @@ class DustEngine
   #  * `preserve_newlines` - when `true`, all `\n` characters found in templates
   #       will be converted to `{~n}` prior to processing the template.
   #
+  #
+  #  * `trim_trailing_newline` - when `true`, a true newline (`\n`, not `{~n}`)
+  #       at the end of a template file will be stripped off (to avoid adding
+  #       unintended whitespace due to a newline added to the end of a file
+  #       by a text editor).
+  #
   #  * `use_cache` - when `true`, "compiled" templates will be cached (by name
   #       or filename); otherwise no caching will be applied, including dust's
   #       own internal cache
@@ -129,7 +135,8 @@ class DustEngine
     @template_root = @_get_template_root(options)
     @template_extension = @_get_template_extension(options)
     @preserve_newlines = @_get_preserve_newlines(options)
-    @template_not_found = @_get_tempate_not_found(options)
+    @trim_trailing_newline = @_get_trim_trailing_newline(options)
+    @template_not_found = @_get_template_not_found(options)
     @use_cache = @_get_use_cache(options)
     if @use_cache
       @cache = {}
@@ -185,6 +192,8 @@ class DustEngine
           callback(err)
         else
           data = data?.toString?()
+          if @_get_trim_trailing_newline(options) and /\n$/.test(data)
+            data = data.substring(0,data.length-1)
           if @_get_preserve_newlines(options)
             data = data.replace /\n/g, "\n{~n}"
           callback(null,data)
@@ -310,6 +319,10 @@ class DustEngine
   _get_preserve_newlines:(options = {})=>
     Util.truthy_string(options.preserve_newlines ? options.preserveNewlines ? @preserve_newlines ? false)
 
+  # determines the "trim_trailing_newline" value based on the given options
+  _get_trim_trailing_newline:(options = {})=>
+    Util.truthy_string(options.trim_trailing_newline ? options.trimTrailingNewline ? @trim_trailing_newline ? false)
+
   # determines the "use_cache" value based on the given options
   _get_use_cache:(options = {})=>
     Util.truthy_string(options.use_cache ? options.useCache ? @use_cache ? false)
@@ -335,7 +348,7 @@ class DustEngine
   # invokes `template_not_found(template_name,options,original_callback)`
   # otherwise invokes `cb()`
   _maybe_check_that_file_exists:(filename,template_name,options,original_callback,cb)=>
-    template_not_found = @_get_tempate_not_found(options)
+    template_not_found = @_get_template_not_found(options)
     if template_not_found?
       fs.exists filename, (exists)=>
         if exists
@@ -486,7 +499,7 @@ class DustEngine
 
 exports.DustEngine = DustEngine
 exports.INSTANCE = new DustEngine()
-exports__express = exports.INSTANCE.render_for_express
+exports.render_for_express = exports.INSTANCE.render_for_express
 
 if require.main is module
   DustEngine.main()
