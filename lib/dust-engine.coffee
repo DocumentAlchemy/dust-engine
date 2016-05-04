@@ -263,6 +263,8 @@ class DustEngine
     else if typeof context is 'function' and not options? and not callback?
       callback = context
       context = null
+    if context? and options? and (not Array.isArray(context))
+      context = [context,options]
     options ?= {}
     preserve_newlines = @_get_preserve_newlines(options)
     if preserve_newlines
