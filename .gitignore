@@ -17,6 +17,7 @@ tmp
 test/tmp
 logs/*.err
 logs/*.out
+dust-engine-v*
 ######################################################################
 $RECYCLE.BIN/
 *.*~
