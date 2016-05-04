@@ -1,6 +1,6 @@
 {
   "name"                   : "dust-engine",
-  "version"                : "0.9.1",
+  "version"                : "0.9.2",
   "description"            : "Command line, library, and expressjs processor of dust.js templates.",
   "keywords"               : ["html","template","dustjs","dust","expressjs","express","engine"],
   "homepage"               : "https://github.com/documentalchemy/dust-engine",
