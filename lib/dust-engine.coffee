@@ -8,7 +8,6 @@ FileUtil                   = require('inote-util').FileUtil
 ObjectUtil                 = require('inote-util').ObjectUtil
 yargs                      = require 'yargs'
 DEFAULT_TEMPLATE_EXTENSION = ".dust"
-
 # Lazily require `dustjs-linkedin` so that this file can be
 # instantiated without having `dustjs-linkedin` available.
 # (In that case the `options.dust` value must be provided in
@@ -146,6 +145,13 @@ class DustEngine
       @dust.onLoad = @_get_on_load(options)
     else unless @_get_no_onload(options)
       @dust.onLoad = (t,o,c)=>@on_load(t,o,c) # dust relies on onLoad.length to determine whether or not to pass options, so force the signature directly (otherwise the CoffeeScript-generated signature doens't match)
+    # set up aliases
+    for alias in ['render_from_string', 'render_string_template', 'render_string', 'renderDustTemplateFromString', 'renderFromString', 'renderStringTemplate', 'renderString']
+      @[alias] = @render_dust_template_from_string
+    for alias in ['render', 'render_from_file', 'render_file_template', 'render_file', 'renderDustTemplateFromFile', 'renderFromFile', 'renderFileTemplate', 'renderFile']
+      @[alias] = @render_dust_template_from_file
+    for alias in ['renderForExpress']
+      @[alias] = @render_for_express
 
   # When caching is enabled, returns the "compiled" (function)
   # version of the template with the given name (or path) or
@@ -185,7 +191,8 @@ class DustEngine
     if @base_options?
       options = ObjectUtil.merge(@base_options,options)
     template_root = @_get_template_root(options)
-    template_path = @_resolve_template_path(template_root,template_name)
+    template_extension = @_get_template_extension(options)
+    template_path = @_resolve_template_path(template_root,template_name,template_extension)
     @_maybe_check_that_file_exists template_path, template_name, options, callback, ()=>
       fs.readFile template_path, { encoding: (options.encoding ? 'utf8') }, (err,data)=>
         if err?
@@ -248,11 +255,19 @@ class DustEngine
     return base.push(ctx)
 
   render_for_express:(view_name, context, callback)=>
-    @get_template view_name, (err,template)=>
+    if typeof context is 'function' and not callback?
+      callback = context
+      context = null
+    else if Array.isArray(context) and context.length is 2
+      options = context[1]
+      context = context[0]
+    @get_template view_name, options, (err,template)=>
       if err?
         callback(err)
       else
         @render_template(template,context,callback)
+
+  _warned_about_render_time_helpers: false
 
   # Use the dust engine to render the given `template_string` for the given `context`.
   # Callback signature: (err,content)
@@ -265,6 +280,9 @@ class DustEngine
       context = null
     if context? and options? and (not Array.isArray(context))
       context = [context,options]
+    if options?.helpers? and not @_warned_about_render_time_helpers
+      console.error "\nWARNING: The 'helpers' option was passed to the DustEngine's render function\n         but that option is only supported during the initialization of the\n         DustEngine instance. It cannot be set at render-time."
+      @_warned_about_render_time_helpers = true
     options ?= {}
     preserve_newlines = @_get_preserve_newlines(options)
     if preserve_newlines
@@ -274,24 +292,24 @@ class DustEngine
       @set_cached_template(options.template_name,template)
     @render_template(template,context,callback)
 
-  # Callback signature: (err,content)
-  render:(template_file,context,options,callback)=>
-    @render_dust_template_from_file(template_file,context,options,callback)
-
   # Use the dust engine to render the template in the given `template_file` for the given `context`.
   # Callback signature: (err,content)
   render_dust_template_from_file:(template_file,context,options,callback)=>
     if typeof options is 'function' and not callback?
       callback = options
       options = null
+    if context? and options? and (not Array.isArray(context))
+      context = [context,options]
     options ?= {}
-    template_path = @_resolve_template_path(@_get_template_root(options),template_file)
+    template_path = @_resolve_template_path(@_get_template_root(options),template_file, @_get_template_extension(options))
     @_maybe_check_that_file_exists template_path, template_file, options, callback, ()=>
       fs.readFile template_path, { encoding: (options.encoding ? 'utf8') }, (err,template_string)=>
         if err?
           callback(err)
         else
           template_string = template_string?.toString()
+          if @_get_trim_trailing_newline(options) and /\n$/.test(template_string)
+            template_string = template_string.substring(0,template_string.length-1)
           options.template_name ?= template_file
           @render_dust_template_from_string(template_string,context,options,callback)
 
@@ -307,6 +325,8 @@ class DustEngine
       extension ?= DEFAULT_TEMPLATE_EXTENSION
       unless /^\./.test extension
         extension = ".#{extension}"
+    else if extension is false
+      extension = ''
     return extension
 
   # determines the "ignore_cache" value based on the given options
@@ -362,16 +382,17 @@ class DustEngine
 
   # computes the filename (and path) for `template_name`
   # relative to the `template_root` (if specified).
-  # note that `.dust` is automatically appended to the
+  # note that `<template_extension>` is automatically appended to the
   # template name if the template name doesn't already end
-  # in `.dust`.
-  _resolve_template_path:(template_root,template_name)=>
-    if template_root? and not template_name?
+  # in `<template_extension>`.
+  _resolve_template_path:(template_root,template_name,template_extension)=>
+    if template_root? and not template_name? and not template_extension?
       template_name = template_root
       template_root = null
     template_root ?= @template_root
-    if @template_extension and not @_string_ends_with(template_name, @template_extension)
-      template_name = "#{template_name}.dust"
+    template_extension ?= @template_extension
+    if @template_extension and not @_string_ends_with(template_name, template_extension)
+      template_name = "#{template_name}#{template_extension}"
     if template_root?
       template_path = path.resolve(template_root,template_name)
     else
@@ -393,7 +414,12 @@ class DustEngine
           return true
       return false
 
-  @main:()=>
+  @main:(process_argv, console_log, console_err, process_exit)=>
+    process_argv ?= process.argv
+    console_log ?= console.log
+    console_err ?= console.error
+    process_exit ?= process.exit
+    #
     ERROR_INVALID_CLP   = 1
     ERROR_CONTEXT_PARSE = 2
     ERROR_DURING_RENDER = 3
@@ -408,7 +434,7 @@ class DustEngine
     FINE  = 4
     vlog = (level,args...)=>
       if level is ERROR
-        console.error args...
+        console_err args...
       else
         if level <= argv.verbose
           args = args.map (arg)=>
@@ -416,7 +442,7 @@ class DustEngine
               return JSON.stringify(arg,null,2)
             else
               return arg
-          console.log args...
+          console_log args...
     options    = {}
     options.t  = { alias: "template",          describe: "Dust template", required:true }
     options.r  = { alias: "template-root",     describe: "Root directory for relative template paths; defaults to parent of template" }
@@ -428,9 +454,12 @@ class DustEngine
     options.ttn = { alias: "trim-trailing-newline", describe: "When truthy, any final newline (\\n) found in a template will be stripped.", boolean:true, default:false }
     arg_parser = yargs.options(options)
     arg_parser.help().alias('h','help')
+    arg_parser.version ()=>
+      pjson = require(path.join(HOMEDIR,'package.json'))
+      return "#{pjson.name} v#{pjson.version}"
     arg_parser.count('verbose').alias('v','verbose').describe('verbose',"Be more chatty")
     arg_parser.usage('Usage: $0 [OPTIONS]')
-    argv       = arg_parser.argv
+    argv = arg_parser.parse(process_argv)
     vlog FINE, "Read the following from the command line:", argv
     # NORMALIZE COMMAND LINE PARAMETERS
     if argv.quiet
@@ -439,12 +468,12 @@ class DustEngine
       argv.o = argv.output = null
     # HANDLE HELP
     if argv.help
-      yargs.showHelp()
-      process.exit(0)
+      yargs.showHelp(console_log)
+      process_exit 0
     # CHECK COMMAND LINE PARAMETERS
     if argv.j? and argv.c?
       vlog ERROR, "ERROR: Cannot use both --context and --context-json at the same time."
-      process.exit ERROR_INVALID_CLP
+      process_exit ERROR_INVALID_CLP
     # PARSE CONTEXT
     context = null
     if argv.j?
@@ -455,7 +484,7 @@ class DustEngine
         vlog ERROR, "ERROR trying to load context from --context-json JSON string."
         vlog ERROR, "error:",err
         vlog ERROR, "input:",argv.j
-        process.exit ERROR_CONTEXT_PARSE
+        process_exit ERROR_CONTEXT_PARSE
     else if argv.c
       vlog INFO, "Reading context from file at '#{argv.c}'."
       try
@@ -463,7 +492,7 @@ class DustEngine
       catch err
         vlog ERROR, "ERROR trying to load context from JSON file at '#{argv.c}'."
         vlog ERROR, "error:",err
-        process.exit ERROR_CONTEXT_PARSE
+        process_exit ERROR_CONTEXT_PARSE
     vlog DEBUG, "Read the following context:", context
     # PARSE TEMPLATE ROOT
     template =  argv.t
@@ -483,7 +512,7 @@ class DustEngine
       if err?
         vlog ERROR, "ERROR while processing template at '#{template}'."
         vlog ERROR, "error:",err
-        process.exit ERROR_DURING_RENDER
+        process_exit ERROR_DURING_RENDER
       else
         if argv.o?
           vlog INFO, "Writing to '#{argv.o}'"
@@ -491,14 +520,13 @@ class DustEngine
             if err?
               vlog ERROR, "ERROR while writing output to '#{argv.o}'."
               vlog ERROR, "error:",err
-              process.exit ERROR_DURING_WRITE
+              process_exit ERROR_DURING_WRITE
             else
               vlog LOG, "Output written to '#{argv.o}'"
-              process.exit 0
+              process_exit 0
         else
-          console.log content
-          process.exit 0
-
+          console_log content
+          process_exit 0
 
 exports.DustEngine = DustEngine
 exports.INSTANCE = new DustEngine()

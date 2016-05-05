@@ -1,0 +1,3 @@
+Hello {@UPCASE}{name}{/UPCASE}!{~n}
+{@eq key=name value="World"}Name is equal to "World".{/eq}{~n}
+Text at the end of the file.

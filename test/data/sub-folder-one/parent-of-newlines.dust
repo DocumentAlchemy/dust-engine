@@ -1,0 +1,13 @@
+This
+template
+is
+called
+"parent of
+newlines"
+because
+the template
+that it includes
+has extra newlines
+added to it.
+{>hello-world-newlines/}
+This is text after the include.
