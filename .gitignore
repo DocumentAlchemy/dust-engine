@@ -18,6 +18,8 @@ test/tmp
 logs/*.err
 logs/*.out
 dust-engine-v*
+*.html
+docs
 ######################################################################
 $RECYCLE.BIN/
 *.*~
