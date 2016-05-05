@@ -152,9 +152,7 @@ clean-docs: clean-markdown clean-docco
 ################################################################################
 # DOCUMENTATION ################################################################
 ################################################################################
-MARKDOWN_TOC ?= ./node_modules/.bin/toc
 MARKDOWN_SRCS ?= $(shell find . -type f -name '*.md' | grep -v node_modules | grep -v module)
-MARKDOWN_TOCED ?= ${MARKDOWN_SRCS:.md=.md-toc}
 MARKDOWN_PROCESSOR ?= node -e "var h=require('highlight.js'),m=require('marked'),c='';process.stdin.on('data',function(b){c+=b.toString();});process.stdin.on('end',function(){m.setOptions({gfm:true,highlight:function(x,l){if(l){return h.highlight(l,x).value;}else{return x;}}});console.log(m(c))});process.stdin.resume();"
 MARKDOWN_HTML ?= ${MARKDOWN_TOCED:.md-toc=.html}
 MARKDOWN_PREFIX ?= "<html><head><style>`cat docs/styles/markdown.css`</style><body>"
@@ -162,15 +160,10 @@ MARKDOWN_SUFFIX ?= "</body></html>"
 DOCCO_EXE ?= ./node_modules/.bin/docco
 #------------------------------------------------------------------------------
 docs: markdown docco
-.SUFFIXES: .md-toc .md
-.md.md-toc:
-	cp "$<" "$@"
-	$(MARKDOWN_TOC) "$@"
-$(MARKDOWN_TOCCED_OBJ): $(MARKDOWN_SRCS)
-.SUFFIXES: .html .md-toc
-.md-toc.html:
+.SUFFIXES: .html .md
+.md.html:
 	(echo $(MARKDOWN_PREFIX) > $@) && (cat "$<" | $(MARKDOWN_PROCESSOR) | sed "s/<!-- toc -->/<div id=TofC>/"  | sed "s/<!-- toc stop -->/<div style=\"font-size: 0.9em; text-align: right\"><a href=\".\" >[up]<\/a> <a href=\"javascript:back(-1)\">[back]<\/a><\/div><\/div>/" >> $@) && (echo $(MARKDOWN_SUFFIX) >> $@)
-$(MARKDOWN_HTML_OBJ): $(MARKDOWN_TOCCED_OBJ)
+$(MARKDOWN_HTML_OBJ): $(MARKDOWN_SRCS)
 $(MARKDOWN_HTML): docs/styles/markdown.css
 md: $(MARKDOWN_HTML) $(NODE_MODULES)
 html: md
