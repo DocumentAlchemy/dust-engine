@@ -228,6 +228,8 @@ The `DustEngine` constructor and `render[String]` functions accept several optio
 
  * This repository follows the "gitflow" convention of doing development within the `develop` branch.  The `master` branch only contains "released" versions of the code, `develop` is where all the fun happens.
 
+ * This repository is fairly extensively unit-tested. If you are doing development you can run `make test` to run the tests and `make coverage` to generate a test-coverage report.
+
 ### Licensing
 
 This module is made available under an MIT license, as described in [LICENSE.txt](https://github.com/DocumentAlchemy/dust-engine/blob/master/LICENSE.txt).

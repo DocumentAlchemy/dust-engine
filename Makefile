@@ -58,6 +58,7 @@ clean-module:
 	rm -rf ${MODULE_DIR}
 	rm -rf $(PACKAGE_DIR)
 	rm -rf $(PACKAGE_DIR).tgz
+	rm -rf $(PACKAGE_NAME)-v*
 
 
 ################################################################################
