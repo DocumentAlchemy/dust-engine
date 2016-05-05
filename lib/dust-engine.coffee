@@ -528,10 +528,12 @@ class DustEngine
           console_log content
           process_exit 0
 
-exports.DustEngine = DustEngine
-exports.INSTANCE = new DustEngine()
-exports.render_for_express = exports.INSTANCE.render_for_express
-exports.main = DustEngine.main
+exports.DustEngine       = DustEngine
+exports.INSTANCE         = new DustEngine()
+exports.renderForExpress = exports.render_for_express = exports.INSTANCE.render_for_express
+exports.render           = exports.renderFile = exports.render_file = exports.INSTANCE.render_dust_template_from_file
+exports.renderString     = exports.render_string = exports.INSTANCE.render_dust_template_from_stirng
+exports.main             = DustEngine.main
 
 if require.main is module
   DustEngine.main()
