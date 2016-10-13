@@ -139,6 +139,8 @@ class DustEngine
     @use_cache = @_get_use_cache(options)
     if @use_cache
       @cache = {}
+    else
+      @dust?.config?.cache = false
     @base_context = @_get_base_context(options)
     @base_options = @_get_base_options(options)
     if @_get_on_load(options)
